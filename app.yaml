@@ -1,0 +1,6 @@
+runtime: python3
+
+handlers:
+- url: /.*
+  secure: always
+  script: auto
