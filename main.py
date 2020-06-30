@@ -1,41 +1,65 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request, jsonify
+from werkzeug.exceptions import BadRequest
 from enum import Enum
+import re
+import datetime
+from google.cloud import firestore
 
 app = Flask(__name__)
+db = firestore.Client()
 
 @app.route("/")
 def index():
-    mock_transactions = [{
-        "timestamp": "05/29/2020 08:24 EST",
-        "card": "Uber",
-        "amount": "$0.50",
-        "success": True
-    },{
-        "timestamp": "05/29/2020 08:24 EST",
-        "card": "Discover",
-        "amount": "$0.50",
-        "success": True
-    }, {
-        "timestamp": "06/29/2020 08:24 EST",
-        "card": "Uber",
-        "amount": "$0.50",
+    transactions = [transaction.to_dict() for transaction in db.collection("transactions").stream()]
+    transactions.sort(key=lambda transaction: transaction["timestamp"], reverse=True)
+    cards = [card.to_dict() for card in db.collection("cards").stream()]
+    # @TODO(darrennchan8): Consider refactoring cards into a simple dictionary in the backend.
+    cards = {card["number"]: card["name"] for card in cards}
+    transactions = [{
+        **transaction,
+        "timestamp": transaction["timestamp"].strftime("%x %X"),
+        "card": cards.get(transaction["card"], "**** **** **** " + transaction["card"]),
+        "amount": "${:,.2f}".format(transaction["amount"])
+    } for transaction in transactions]
+    return render_template("status.html", transactions=transactions, cards=cards)
+
+def reload_batch(cards, amount):
+    # @TODO(darrennchan8): Implement this.
+    return [{
+        "timestamp": datetime.datetime.now(),
+        "card": card,
+        "amount": amount,
         "success": False,
-        "message": "Unable to refill the balance of this card."
-    }, {
-        "timestamp": "06/29/2020 08:24 EST",
-        "card": "Discover",
-        "amount": "$0.50",
-        "success": False,
-        "message": "Unable to refill the balance of this card."
-    }]
-    mock_cards = [{
-        "name": "Uber",
-        "number": "**** **** **** 1234"
-    }, {
-        "name": "Discover",
-        "number": "**** **** **** 4321"
-    }]
-    return render_template("status.html", transactions=mock_transactions, cards=mock_cards)
+        "message": "Web automation not implemented!"
+    } for card in cards]
+
+@app.route("/reload")
+def reload():
+    try:
+        amount = float(request.args.get("amount"))
+    except:
+        raise BadRequest()
+    card = request.args.get("card")
+    if amount <= 0 or card is None or not re.match(r"^\d{4}$", card):
+        raise BadRequest()
+    result = reload_batch([card], amount)[0]
+    db.collection("transactions").add(result)
+    return jsonify(result)
+
+@app.route("/reloadAll")
+def reload_all():
+    try:
+        amount = float(request.args.get("amount"))
+    except:
+        raise BadRequest()
+    if amount <= 0:
+        raise BadRequest()
+    cards = [card.to_dict()["number"] for card in db.collection("cards").stream()]
+    results = reload_batch(cards, amount)
+    for result in results:
+        db.collection("transactions").add(result)
+    # @TODO(darrennchan8): Consider obfuscating (use alias) the resulting array of card numbers.
+    return jsonify(results)
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=8080, debug=True)

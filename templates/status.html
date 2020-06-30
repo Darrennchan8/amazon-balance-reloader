@@ -40,6 +40,7 @@
                     {% endfor %}
                 </tbody>
             </table>
+            <!-- @TODO(darrennchan8): Consider removing this section for privacy/security. -->
             <h2 class="mb-3">Cards</h2>
             <table class="table table-striped table-bordered table-sm mb-5">
                 <thead>
@@ -49,10 +50,10 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for card in cards %}
+                    {% for number, name in cards.items() %}
                     <tr>
-                        <td>{{ card.name }}</td>
-                        <td>{{ card.number }}</td>
+                        <td>{{ name }}</td>
+                        <td>**** **** **** {{ number }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
