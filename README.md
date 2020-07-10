@@ -37,9 +37,16 @@ pre-commit install
 ```
 
 ### Cloud Firestore Integration
-Before running, you'll need to create a [GCP Firestore](https://cloud.google.com/firestore/docs/quickstart-servers#create_a_in_native_mode_database)
-instance and follow these [steps to allocate permissions](https://cloud.google.com/firestore/docs/quickstart-servers#set_up_authentication).
+Before running, you'll need to create a [GCP Firestore](https://cloud.google.com/firestore/docs/quickstart-servers#create_a_in_native_mode_database) instance
+and follow these [steps to allocate permissions and generate credentials](https://cloud.google.com/firestore/docs/quickstart-servers#set_up_authentication).
 Note that for our purposes the role of `Cloud Datastore User` will suffice.
+
+### Webdriver Server
+This application also needs to connect to a chromedriver instance. In this case, we can use
+[selenium/standalone-chrome](https://hub.docker.com/r/selenium/standalone-chrome/):
+```bash
+docker run -d -p 4444:4444 -v /dev/shm:/dev/shm selenium/standalone-chrome
+```
 
 ## Running Locally
 Run `main.py` to start a development server on port 8080:
@@ -69,10 +76,26 @@ Here are the steps for initial deployment:
 2. Run `gcloud app deploy` and select the target project.
 3. Run `gcloud app browse` to open the dashboard hosted by App Engine.
 
+### Compute Engine Webdriver Server
+With proper configuration, a remote chromedriver instance can run on even an f1-micro instance.
+
+When creating a new VM instance, deploy the [selenium/standalone-chrome](https://hub.docker.com/r/selenium/standalone-chrome/)
+container image to the VM instance. Additionally, add a network tag (ex: `chromedriver`) for
+[firewall configuration](https://cloud.google.com/vpc/docs/using-firewalls#creating_firewall_rules). Ingress traffic should be enabled for tcp port 4444
+matching the previously used network tag.
+
+It's also important that Google fluentd (stackdriver-logging.service) can utilize a significant amount of memory, which makes execution infeasible on
+f1-micro instances [(Example)](https://serverfault.com/q/980569). Execute these commands to disable it for the compute instance:
+```bash
+gcloud compute instances add-metadata <INSTANCE_NAME> --metadata="google-logging-enabled=false"
+gcloud compute instances add-metadata <INSTANCE_NAME> --metadata="google-monitoring-enabled=false"
+```
+It's impossible to set `google-logging-enabled=false` on the web UI.
+
 ### Automated Builds
 Follow [these steps](https://cloud.google.com/source-repositories/docs/integrating-with-cloud-build) to integrate with Cloud Build Triggers for GitHub.
 Build config files are already configured.
 
-## Additional References
+### Automated Reloading
 Consider [Google Cloud Scheduler](https://cloud.google.com/scheduler) or
-[cron.yaml](https://cloud.google.com/appengine/docs/standard/python3/scheduling-jobs-with-cron-yaml) to automatically reload cards on a periodic basis.
+[cron.yaml](https://cloud.google.com/appengine/docs/standard/python3/scheduling-jobs-with-cron-yaml) to automatically `/reloadAll` cards periodically.
