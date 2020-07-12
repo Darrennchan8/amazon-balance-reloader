@@ -130,3 +130,10 @@ dmypy.json
 
 # Service account private key
 private_key.json
+
+# Development selenium + chromedriver binaries
+chromedriver*
+selenium-server-standalone.jar
+
+# IDE
+.idea/
