@@ -32,7 +32,7 @@ def throwable(message):
 
 class AmazonBalanceReloader:
     @throwable("Unable to connect to chromedriver!")
-    def __init__(self, host, port=4444, headless=True):
+    def __init__(self, host, headless=True):
         chrome_options = webdriver.ChromeOptions()
         # @TODO(darrennchan8): Make sure that Compute Engine maps /dev/shm in docker container.
         #       Otherwise, we'll need to uncomment the following line.
@@ -41,30 +41,44 @@ class AmazonBalanceReloader:
             chrome_options.add_argument("--headless")
         self.driver = webdriver.Remote(
             desired_capabilities=chrome_options.to_capabilities(),
-            command_executor=f"http://{host}:{port}/wd/hub",
+            command_executor=f"http://{host}/wd/hub",
         )
         self.driver.implicitly_wait(5)
+        self.authentication_exception = AmazonBalanceReloaderException(
+            "authenticate() not called!", None
+        )
 
     def __enter__(self):
         return self
 
     @throwable("Authentication failed!")
     def authenticate(self, username, password):
-        self.driver.get("https://www.amazon.com/asv/reload/order")
-        self.driver.find_element_by_xpath(
-            "//button[contains(text(), 'Sign In')]"
-        ).click()
-        self.driver.find_element_by_xpath("//input[@type='email']").send_keys(username)
-        self.driver.find_element_by_xpath("//*[@type='submit']").click()
-        self.driver.find_element_by_xpath("//input[@type='password']").send_keys(
-            password
-        )
-        self.driver.find_element_by_xpath("//*[@type='submit']").click()
-        # Verify that authentication is successful and we are redirected back to the order page.
-        self.driver.find_element_by_id("asv-manual-reload-amount")
+        try:
+            self.driver.get("https://www.amazon.com/asv/reload/order")
+            self.driver.find_element_by_xpath(
+                "//button[contains(text(), 'Sign In')]"
+            ).click()
+            self.driver.find_element_by_xpath("//input[@type='email']").send_keys(
+                username
+            )
+            self.driver.find_element_by_xpath("//*[@type='submit']").click()
+            self.driver.find_element_by_xpath("//input[@type='password']").send_keys(
+                password
+            )
+            self.driver.find_element_by_xpath("//*[@type='submit']").click()
+            # Verify that authentication is successful and we are redirected back to the order page.
+            self.driver.find_element_by_id("asv-manual-reload-amount")
+            self.authentication_exception = None
+        except Exception as inst:
+            self.authentication_exception = AmazonBalanceReloaderException(
+                "authenticate() was not successful!", inst
+            )
+            raise inst
 
     @throwable("Unable to reload card!")
     def reload(self, card_number, amount):
+        if self.authentication_exception:
+            raise self.authentication_exception
         self.driver.get("https://www.amazon.com/asv/reload/order")
         self.driver.find_element_by_id("asv-manual-reload-amount").send_keys(
             str(amount)
