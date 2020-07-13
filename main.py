@@ -1,6 +1,5 @@
-import datetime
-import re
-from enum import Enum
+from datetime import datetime
+from re import match
 
 from flask import Flask
 from flask import jsonify
@@ -27,7 +26,7 @@ def index():
             **transaction,
             "timestamp": transaction["timestamp"].strftime("%x %X"),
             "card": cards.get(
-                transaction["card"], "**** **** **** " + transaction["card"]
+                transaction["card"], f"**** **** **** {transaction['card'][-4:]}"
             ),
             "amount": "${:,.2f}".format(transaction["amount"]),
         }
@@ -40,7 +39,7 @@ def reload_batch(cards, amount):
     # @TODO(darrennchan8): Implement this.
     return [
         {
-            "timestamp": datetime.datetime.now(),
+            "timestamp": datetime.now(),
             "card": card,
             "amount": amount,
             "success": False,
@@ -54,10 +53,10 @@ def reload_batch(cards, amount):
 def reload():
     try:
         amount = float(request.args.get("amount"))
-    except:
+    except (TypeError, ValueError):
         raise BadRequest()
     card = request.args.get("card")
-    if amount <= 0 or card is None or not re.match(r"^\d{4}$", card):
+    if amount <= 0 or card is None or not match(r"^\d{16}$", card):
         raise BadRequest()
     result = reload_batch([card], amount)[0]
     db.collection("transactions").add(result)
@@ -68,7 +67,7 @@ def reload():
 def reload_all():
     try:
         amount = float(request.args.get("amount"))
-    except:
+    except (TypeError, ValueError):
         raise BadRequest()
     if amount <= 0:
         raise BadRequest()

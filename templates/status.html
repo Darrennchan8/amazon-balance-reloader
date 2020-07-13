@@ -53,7 +53,7 @@
                     {% for number, name in cards.items() %}
                     <tr>
                         <td>{{ name }}</td>
-                        <td>**** **** **** {{ number }}</td>
+                        <td>**** **** **** {{ number[-4:] }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
