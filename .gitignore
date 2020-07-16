@@ -128,8 +128,8 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# Service account private key
-private_key.json
+# App Engine service account credentials
+service-account.json
 
 # Development selenium + chromedriver binaries
 chromedriver*

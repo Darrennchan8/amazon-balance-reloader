@@ -38,7 +38,11 @@ pre-commit install
 
 ### Cloud Firestore Integration
 Before running, you'll need to create a [GCP Firestore](https://cloud.google.com/firestore/docs/quickstart-servers#create_a_in_native_mode_database) instance
-and follow these [steps to allocate permissions and generate credentials](https://cloud.google.com/firestore/docs/quickstart-servers#set_up_authentication).
+and [generate credentials for `App Engine default service account`](https://console.cloud.google.com/apis/credentials/serviceaccountkey).
+You'll need to provide authentication credentials to your application code by setting the environment variable GOOGLE_APPLICATION_CREDENTIALS. Example:
+```bash
+export GOOGLE_APPLICATION_CREDENTIALS="/path/to/amazon-balance-reloader/service-account.json"
+```
 Note that for our purposes the role of `Cloud Datastore User` will suffice.
 
 ### Webdriver Server
@@ -97,7 +101,7 @@ Execute these commands to disable it for the compute instance:
 gcloud compute instances add-metadata <INSTANCE_NAME> --metadata="google-logging-enabled=false"
 gcloud compute instances add-metadata <INSTANCE_NAME> --metadata="google-monitoring-enabled=false"
 ```
-It is not possible to set the `google-logging-enabled=false` metadata through the web UI.
+It is not possible to set the `google-logging-enabled=false` metadata through the web UI. In fact, changing any configuration for the instance through web UI will automatically set `google-logging-enabled=true`.
 
 ### Automated Builds
 Follow [these steps](https://cloud.google.com/source-repositories/docs/integrating-with-cloud-build) to integrate with Cloud Build Triggers for GitHub.
