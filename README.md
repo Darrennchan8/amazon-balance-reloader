@@ -1,5 +1,3 @@
-# WORK IN PROGRESS! THIS PROJECT IS NOT FUNCTIONAL YET.
-
 # Amazon Balance Loader
 This is a Flask server that provides functionality to refill the gift card balance of an associated Amazon account.
 
