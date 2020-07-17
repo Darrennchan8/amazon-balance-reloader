@@ -86,9 +86,7 @@ class AmazonBalanceReloader:
         self.driver.find_element_by_xpath(
             f"//*[text()='ending in {card_number[-4:]}']"
         ).click()
-        self.driver.find_element_by_xpath(
-            f"//*[contains(text(), 'Reload') and contains(text(), '{amount}')]"
-        ).click()
+        self.driver.find_element_by_xpath(f"//*[@id='form-submit-button']").click()
         try:
             self.driver.find_element_by_xpath(
                 f"//*[contains(@class, 'pmts-selected')]//input[contains(@placeholder, '{card_number[-4:]}')]"
@@ -104,9 +102,7 @@ class AmazonBalanceReloader:
                     )
                 )
             )
-            self.driver.find_element_by_xpath(
-                f"//*[contains(text(), 'Reload') and contains(text(), '{amount}')]"
-            ).click()
+            self.driver.find_element_by_xpath(f"//*[@id='form-submit-button']").click()
         except NoSuchElementException:
             pass
         # Verify that the reload was successful.
