@@ -2,10 +2,10 @@ from functools import lru_cache
 from functools import wraps
 from os import getenv
 
-import requests
 from google.auth import app_engine
 from google.oauth2 import service_account
 from googleapiclient import discovery
+from requests import get
 
 FIREWALL_RULE_NAME = "temporary-compute-session-handle"
 
@@ -15,7 +15,7 @@ def is_app_engine_environment():
 
 
 def self_ip():
-    return requests.get("https://checkip.amazonaws.com/").text.strip()
+    return get("https://checkip.amazonaws.com/").text.strip()
 
 
 class ComputeSessionException(Exception):
@@ -39,6 +39,20 @@ def throwable(message):
         return wrapper
 
     return throwable
+
+
+class MockComputeSession:
+    def remote_ip(self):
+        return self.mock_remote_ip
+
+    def __init__(self, mock_remote_ip):
+        self.mock_remote_ip = mock_remote_ip
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
 
 
 class ComputeSession:
