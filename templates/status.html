@@ -5,6 +5,7 @@
         <title>Dashboard</title>
 
         <!-- CSS only -->
+        <link rel="stylesheet" href="{{ url_for("static", filename="status.css") }}"/>
         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
         <link href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
 
@@ -15,12 +16,14 @@
     </head>
     <body class="bg-light">
         <div class="container my-5">
-            <h2 class="mb-3">Recent Transctions</h2>
+            <h2 class="mb-3">Recent Transactions</h2>
             <table class="table table-striped table-bordered table-sm mb-5">
                 <thead>
                     <tr>
                         <th>Timestamp</th>
-                        <th>Card</th>
+                        <th>Duration</th>
+                        <th>Execution</th>
+                        <th>Cards</th>
                         <th>Amount</th>
                         <th>Status</th>
                     </tr>
@@ -29,13 +32,41 @@
                     {% for transaction in transactions %}
                     <tr>
                         <td>{{ transaction.timestamp }}</td>
-                        <td>{{ transaction.card }}</td>
+                        <td>{{ transaction.time_elapsed }}</td>
+                        <td class="align-middle"><div class="d-flex">
+                            <img class="icon {{ "" if transaction.app_engine else "grey" }}"
+                                src="{{ url_for("static", filename="app-engine.svg") }}"
+                                data-toggle="tooltip"
+                                data-placement="bottom"
+                                title="{{
+                                        "This transaction was run on App Engine!"
+                                        if transaction.app_engine else
+                                        "This transaction was not run App Engine."
+                                }}"/>
+                            <img class="icon {{ "" if transaction.compute_engine else "grey" }}"
+                                src="{{ url_for("static", filename="compute-engine.svg") }}"
+                                data-toggle="tooltip"
+                                data-placement="bottom"
+                                title="{{
+                                        "The webdriver was run on a compute instance!"
+                                        if transaction.compute_engine else
+                                        "The webdriver was run locally."
+                                }}"/>
+                        </div></td>
+                        <td>{{ ", ".join(transaction.cards) }}</td>
                         <td>{{ transaction.amount }}</td>
-                        {% if transaction.success %}
-                        <td><i class="fa fa-circle text-success"></i></td>
-                        {% else %}
-                        <td><i class="fa fa-circle text-danger" data-toggle="tooltip" data-placement="right" title="{{ transaction.message }}"></i></td>
-                        {% endif %}
+                        <td>
+                            <i class="fa {{
+                                        "fa-exclamation-triangle text-warning"
+                                        if True in transaction.success and False in transaction.success else
+                                        "fa-check text-success"
+                                        if True in transaction.success else
+                                        "fa-exclamation-circle text-danger"
+                                        }}"
+                                data-toggle="tooltip"
+                                data-placement="right"
+                                title="{{ transaction.message }}"></i>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -50,10 +81,10 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for number, name in cards.items() %}
+                    {% for name, number in cards.items() %}
                     <tr>
                         <td>{{ name }}</td>
-                        <td>**** **** **** {{ number[-4:] }}</td>
+                        <td>{{ number }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>

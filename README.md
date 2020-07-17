@@ -68,8 +68,8 @@ Visit `http://127.0.0.1:8080/` to view an HTML dashboard containing a list of re
 This app is controlled via a REST api. Here are the routes and their descriptions:
 
 Reload the Amazon gift card balance by using a specified card to charge a specified amount.\
-`GET` `/reload?card=[CARD_NUMBER]&amount=[AMOUNT]`
- - CARD_NUMBER: 4 digits corresponding to the last 4 digits of a credit card number.
+`GET` `/reload?cards=[CARD_NUMBERS]&amount=[AMOUNT]`
+ - CARD_NUMBERS: A series of credit card numbers separated by a comma.
  - AMOUNT: A positive floating-point number. Note that Amazon imposes a minimum reload amount of `$0.50`.
 
 Reload the Amazon gift card balance by charging all cards associated with the Amazon account.\
