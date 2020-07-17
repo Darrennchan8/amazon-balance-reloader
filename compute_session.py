@@ -92,6 +92,7 @@ class ComputeSession:
             raise Exception(f"No external IP addresses were found!")
         return eligible_ips[0]
 
+    @throwable("Failed to use credentials for the Compute API!")
     def __init__(self, remote_network_tag):
         auth_scopes = [
             "https://www.googleapis.com/auth/cloud-platform",
