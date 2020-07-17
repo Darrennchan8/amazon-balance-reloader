@@ -44,41 +44,30 @@ class AmazonBalanceReloader:
             command_executor=f"http://{host}/wd/hub",
         )
         self.driver.implicitly_wait(5)
-        self.authentication_exception = AmazonBalanceReloaderException(
-            "authenticate() not called!", None
-        )
 
     def __enter__(self):
         return self
 
     @throwable("Authentication failed!")
     def authenticate(self, username, password):
-        try:
-            self.driver.get("https://www.amazon.com/asv/reload/order")
-            self.driver.find_element_by_xpath(
-                "//button[contains(text(), 'Sign In')]"
-            ).click()
-            self.driver.find_element_by_xpath("//input[@type='email']").send_keys(
-                username
-            )
-            self.driver.find_element_by_xpath("//*[@type='submit']").click()
-            self.driver.find_element_by_xpath("//input[@type='password']").send_keys(
-                password
-            )
-            self.driver.find_element_by_xpath("//*[@type='submit']").click()
-            # Verify that authentication is successful and we are redirected back to the order page.
-            self.driver.find_element_by_id("asv-manual-reload-amount")
-            self.authentication_exception = None
-        except Exception as inst:
-            self.authentication_exception = AmazonBalanceReloaderException(
-                "authenticate() was not successful!", inst
-            )
-            raise inst
+        self.driver.get("https://www.amazon.com/asv/reload/order")
+        self.driver.find_element_by_xpath(
+            "//button[contains(text(), 'Sign In')]"
+        ).click()
+        self.driver.find_element_by_xpath("//input[@type='email']").send_keys(username)
+        self.driver.find_element_by_xpath("//*[@type='submit']").click()
+        self.driver.find_element_by_xpath("//input[@type='password']").send_keys(
+            password
+        )
+        self.driver.find_element_by_xpath("//*[@type='submit']").click()
+        # Verify that authentication is successful and we are redirected back to the order page.
+        # Wait up to 10 minutes in case Amazon sends an SMS challenge that needs to be verified by the user.
+        WebDriverWait(self.driver, 600).until(
+            EC.visibility_of_element_located((By.ID, "asv-manual-reload-amount"))
+        )
 
     @throwable("Unable to reload card!")
     def reload(self, card_number, amount):
-        if self.authentication_exception:
-            raise self.authentication_exception
         self.driver.get("https://www.amazon.com/asv/reload/order")
         self.driver.find_element_by_id("asv-manual-reload-amount").send_keys(
             str(amount)
@@ -110,5 +99,14 @@ class AmazonBalanceReloader:
             "//*[contains(text(), 'your reload order is placed')]"
         )
 
+    @throwable("Unable to sign out!")
     def __exit__(self, type, value, tb):
+        try:
+            self.driver.get(
+                "https://www.amazon.com/gp/flex/sign-out.html?signIn=1&useRedirectOnSuccess=1&action=sign-out"
+            )
+            self.driver.find_element_by_xpath("//input[@type='email']")
+        except Exception as inst:
+            self.driver.quit()
+            raise inst
         self.driver.quit()
