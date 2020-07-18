@@ -11,7 +11,7 @@ FIREWALL_RULE_NAME = "temporary-compute-session-handle"
 
 
 def is_app_engine_environment():
-    return getenv("SERVER_SOFTWARE", "").startswith("Google App Engine/")
+    return getenv("GAE_INSTANCE") is not None
 
 
 def self_ip():
