@@ -1,5 +1,6 @@
 import traceback
 from datetime import datetime
+from datetime import timedelta
 from datetime import timezone
 from functools import lru_cache
 from re import match
@@ -18,6 +19,7 @@ from compute_session import ComputeSession
 from compute_session import ComputeSessionException
 from compute_session import is_app_engine_environment
 from compute_session import MockComputeSession
+from compute_session import project_id
 
 app = Flask(__name__)
 db = firestore.Client()
@@ -28,6 +30,23 @@ def masked_card(card_num):
     cards = [card.to_dict() for card in db.collection("cards").stream()]
     cards = {card["number"]: card["name"] for card in cards}
     return cards.get(card_num, f"**** **** **** {card_num[-4:]}")
+
+
+def gae_dashboard_url():
+    return f"https://console.cloud.google.com/appengine?project={project_id()}"
+
+
+def compute_instances_url():
+    return f"https://console.cloud.google.com/compute/instances?project={project_id()}"
+
+
+def cloud_log_url(start, end):
+    return (
+        "https://console.cloud.google.com/logs/query;query=resource.type%3D%22gae_app%22;"
+        f'timeRange={(start - timedelta(seconds=3)).strftime("%Y-%m-%dT%H:%M:%SZ")}%2F'
+        f'{(end + timedelta(seconds=3)).strftime("%Y-%m-%dT%H:%M:%SZ")}?'
+        f"project={project_id()}"
+    )
 
 
 @app.route("/")
@@ -42,8 +61,14 @@ def index():
         {
             "timestamp": transaction["timestamp_start"].strftime("%x %X"),
             "time_elapsed": f'{round((transaction["timestamp_end"] - transaction["timestamp_start"]).total_seconds())} seconds',
-            "app_engine": transaction["app_engine"],
-            "compute_engine": transaction["compute_engine"],
+            "app_engine_url": transaction["app_engine"] and gae_dashboard_url(),
+            "compute_engine_url": transaction["compute_engine"]
+            and compute_instances_url(),
+            "log_url": cloud_log_url(
+                transaction["timestamp_start"], transaction["timestamp_end"]
+            )
+            if transaction["app_engine"]
+            else None,
             "cards": [masked_card(card) for card in transaction["cards"]],
             "amount": "${:,.2f}".format(transaction["amount"]),
             "success": transaction["success"],

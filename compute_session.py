@@ -13,6 +13,11 @@ def is_app_engine_environment():
     return getenv("GAE_INSTANCE") is not None
 
 
+@lru_cache
+def project_id():
+    return google.auth.default()[1]
+
+
 def self_ip():
     return get("https://checkip.amazonaws.com/").text.strip()
 

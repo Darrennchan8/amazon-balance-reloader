@@ -34,24 +34,39 @@
                         <td>{{ transaction.timestamp }}</td>
                         <td>{{ transaction.time_elapsed }}</td>
                         <td class="align-middle"><div class="d-flex">
-                            <img class="icon {{ "" if transaction.app_engine else "grey" }}"
-                                src="{{ url_for("static", filename="app-engine.svg") }}"
-                                data-toggle="tooltip"
-                                data-placement="bottom"
-                                title="{{
-                                        "This transaction was run on App Engine!"
-                                        if transaction.app_engine else
-                                        "This transaction was not run App Engine."
-                                }}"/>
-                            <img class="icon {{ "" if transaction.compute_engine else "grey" }}"
-                                src="{{ url_for("static", filename="compute-engine.svg") }}"
-                                data-toggle="tooltip"
-                                data-placement="bottom"
-                                title="{{
-                                        "The webdriver was run on a compute instance!"
-                                        if transaction.compute_engine else
-                                        "The webdriver was run locally."
-                                }}"/>
+                            <a class="img-container" {{ transaction.app_engine_url and "href" }}="{{ transaction.app_engine_url }}" target="_blank">
+                                <img class="icon{{ "" if transaction.app_engine_url else " grey" }}"
+                                    src="{{ url_for("static", filename="app-engine.svg") }}"
+                                    data-toggle="tooltip"
+                                    data-placement="bottom"
+                                    title="{{
+                                            "This transaction was run on App Engine!"
+                                            if transaction.app_engine_url else
+                                            "This transaction was not run App Engine."
+                                    }}"/>
+                            </a>
+                            <a class="img-container" {{ transaction.compute_engine_url and "href" }}="{{ transaction.compute_engine_url }}" target="_blank">
+                                <img class="icon{{ "" if transaction.compute_engine_url else " grey" }}"
+                                    src="{{ url_for("static", filename="compute-engine.svg") }}"
+                                    data-toggle="tooltip"
+                                    data-placement="bottom"
+                                    title="{{
+                                            "The webdriver was run on a compute instance!"
+                                            if transaction.compute_engine_url else
+                                            "The webdriver was run locally."
+                                    }}"/>
+                            </a>
+                            <a class="img-container" {{ transaction.log_url and "href" }}="{{ transaction.log_url }}" target="_blank">
+                                <img class="icon{{ "" if transaction.log_url else " grey" }}"
+                                     src="{{ url_for("static", filename="logging.svg") }}"
+                                     data-toggle="tooltip"
+                                     data-placement="bottom"
+                                     title="{{
+                                             "Logs Available!"
+                                             if transaction.log_url else
+                                             "Logs Unavailable."
+                                     }}"/>
+                            </a>
                         </div></td>
                         <td>{{ ", ".join(transaction.cards) }}</td>
                         <td>{{ transaction.amount }}</td>
