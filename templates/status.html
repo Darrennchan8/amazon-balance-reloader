@@ -13,6 +13,8 @@
         <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
         <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
         <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js" integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>
+
+        <script src="https://cdn.jsdelivr.net/npm/moment@2.27.0/moment.min.js" integrity="sha384-CJyhAlbbRZX14Q8KxKBt0na1ad4KBs9PklAiNk2Efxs9sgimbIZm9kYLJQeNMUfM" crossorigin="anonymous"></script>
     </head>
     <body class="bg-light">
         <div class="container my-5">
@@ -31,8 +33,18 @@
                 <tbody>
                     {% for transaction in transactions %}
                     <tr>
-                        <td>{{ transaction.timestamp }}</td>
-                        <td>{{ transaction.time_elapsed }}</td>
+                        <td data-toggle="tooltip"
+                            data-placement="left"
+                            data-timestamp="{{ transaction.timestamp }}"
+                            title="{{ transaction.timestamp_str }}">
+                            {{ transaction.timestamp_str }}
+                        </td>
+                        <td data-toggle="tooltip"
+                            data-placement="left"
+                            data-time-elapsed="{{ transaction.time_elapsed }}"
+                            title="{{ transaction.time_elapsed }}">
+                            {{ transaction.time_elapsed_str }}
+                        </td>
                         <td class="align-middle"><div class="d-flex">
                             <a class="img-container" {{ transaction.app_engine_url and "href" }}="{{ transaction.app_engine_url }}" target="_blank">
                                 <img class="icon{{ "" if transaction.app_engine_url else " grey" }}"
@@ -107,6 +119,8 @@
         </div>
         <script>
             $(() => {
+                $('[data-timestamp]').each((i, e) => $(e).attr('title', moment(+$(e).attr('data-timestamp')).format('L LT')).text(moment(+$(e).attr('data-timestamp')).fromNow()));
+                $('[data-time-elapsed]').each((i, e) => $(e).attr('title', `${moment.duration(parseFloat($(e).attr('data-time-elapsed'))).asSeconds()} seconds`).text(moment.duration(parseFloat($(e).attr('data-time-elapsed'))).humanize()));
                 $('[data-toggle="tooltip"]').tooltip();
             });
         </script>

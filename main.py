@@ -59,8 +59,13 @@ def index():
     )
     transactions = [
         {
-            "timestamp": transaction["timestamp_start"].strftime("%x %X"),
-            "time_elapsed": f'{round((transaction["timestamp_end"] - transaction["timestamp_start"]).total_seconds())} seconds',
+            "timestamp": transaction["timestamp_start"].timestamp() * 1000,
+            "timestamp_str": transaction["timestamp_start"].strftime("%x %X (UTC)"),
+            "time_elapsed": (
+                transaction["timestamp_end"] - transaction["timestamp_start"]
+            ).total_seconds()
+            * 1000,
+            "time_elapsed_str": f'{round((transaction["timestamp_end"] - transaction["timestamp_start"]).total_seconds())} seconds',
             "app_engine_url": transaction["app_engine"] and gae_dashboard_url(),
             "compute_engine_url": transaction["compute_engine"]
             and compute_instances_url(),
