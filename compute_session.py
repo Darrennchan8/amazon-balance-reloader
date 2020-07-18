@@ -2,8 +2,7 @@ from functools import lru_cache
 from functools import wraps
 from os import getenv
 
-from google.auth import app_engine
-from google.oauth2 import service_account
+import google
 from googleapiclient import discovery
 from requests import get
 
@@ -99,16 +98,8 @@ class ComputeSession:
             "https://www.googleapis.com/auth/compute",
             "https://www.googleapis.com/auth/compute.readonly",
         ]
-        credentials = (
-            app_engine.Credentials(scopes=auth_scopes)
-            if is_app_engine_environment()
-            else service_account.Credentials.from_service_account_file(
-                getenv("GOOGLE_APPLICATION_CREDENTIALS", "service-account.json"),
-                scopes=auth_scopes,
-            )
-        )
+        credentials, self.project_id = google.auth.default(scopes=auth_scopes)
         self.compute_api = discovery.build("compute", "v1", credentials=credentials)
-        self.project_id = credentials.project_id
         self.remote_network_tag = remote_network_tag
 
     @throwable("Failed to add/update session firewall rule to allow this connection!")
