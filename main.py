@@ -1,5 +1,6 @@
 import traceback
 from datetime import datetime
+from datetime import timezone
 from functools import lru_cache
 from re import match
 from sys import argv
@@ -61,7 +62,7 @@ def index():
 
 def reload_batch(cards, amount):
     result = {
-        "timestamp_start": datetime.now(),
+        "timestamp_start": datetime.now(timezone.utc),
         "app_engine": is_app_engine_environment(),
         "compute_engine": not app.debug,
         "cards": cards,
@@ -90,7 +91,7 @@ def reload_batch(cards, amount):
     except (ComputeSessionException, AmazonBalanceReloaderException):
         result["success"].extend([False] * (len(cards) - len(result["success"])))
         traceback.print_exc()
-    result["timestamp_end"] = datetime.now()
+    result["timestamp_end"] = datetime.now(timezone.utc)
     db.collection("transactions").add(result)
     return result
 
