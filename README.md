@@ -93,10 +93,10 @@ create a new VM instance, with the
 [selenium/standalone-chrome](https://hub.docker.com/r/selenium/standalone-chrome/) container image. Additionally, add
 the `standalone-chrome` network tag. This will be used for locating the instance and configuring firewall rules.
 
-After configuring the new VM instance, you can rerun the application with the `--prod` command line flag to utilize the
-remote selenium backend.
+After configuring the new VM instance, you can rerun the application with the `--compute-instance-webdriver` command
+line flag to utilize the remote selenium backend.
 ```bash
-python3 main.py --prod
+python3 main.py --compute-instance-webdriver
 ```
 
 #### Memory Constrained Instances

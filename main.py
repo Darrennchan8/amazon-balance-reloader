@@ -67,7 +67,7 @@ def index():
             * 1000,
             "time_elapsed_str": f'{round((transaction["timestamp_end"] - transaction["timestamp_start"]).total_seconds())} seconds',
             "app_engine_url": transaction["app_engine"] and gae_dashboard_url(),
-            "compute_engine_url": transaction["compute_engine"]
+            "compute_engine_url": transaction["compute_instance_webdriver"]
             and compute_instances_url(),
             "log_url": cloud_log_url(
                 transaction["timestamp_start"], transaction["timestamp_end"]
@@ -94,7 +94,7 @@ def reload_batch(cards, amount):
     result = {
         "timestamp_start": datetime.now(timezone.utc),
         "app_engine": is_app_engine_environment(),
-        "compute_engine": not app.debug,
+        "compute_instance_webdriver": "--compute-instance-webdriver" in argv,
         "cards": cards,
         "amount": amount,
         "success": [],
@@ -102,10 +102,11 @@ def reload_batch(cards, amount):
     }
     try:
         with ComputeSession("standalone-chrome") if result[
-            "compute_engine"
+            "compute_instance_webdriver"
         ] else MockComputeSession("127.0.0.1") as session:
             with AmazonBalanceReloader(
-                f"{session.remote_ip()}:4444", headless=result["compute_engine"]
+                f"{session.remote_ip()}:4444",
+                headless=result["compute_instance_webdriver"],
             ) as reloader:
                 credentials = (
                     db.collection("credentials").document("amazon").get().to_dict()
@@ -152,4 +153,4 @@ def reload_all():
 
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=8080, debug="--prod" not in argv)
+    app.run(host="127.0.0.1", port=8080, debug=True)
