@@ -48,7 +48,12 @@ GOOGLE_APPLICATION_CREDENTIALS. Example:
 ```bash
 export GOOGLE_APPLICATION_CREDENTIALS="/path/to/amazon-balance-reloader/service-account.json"
 ```
-Note that for our purposes the role of `Cloud Datastore User` will suffice.
+
+To initialize credentials in Firestore, you can use `secrets.py`. Be prepared to enter your Amazon login credentials and
+save the secret key for [later use](#usage).
+```bash
+python3 secrets.py --reset-secrets
+```
 
 ### Webdriver Server
 This application also needs to connect to a selenium chromedriver instance. In this case, we can use

@@ -4,7 +4,10 @@ from datetime import timedelta
 from datetime import timezone
 from functools import lru_cache
 from re import match
+from secrets import read_credentials
+from secrets import SecurityException
 from sys import argv
+from time import sleep
 
 from flask import Flask
 from flask import jsonify
@@ -90,7 +93,7 @@ def index():
     return render_template("status.html", transactions=transactions, cards=cards)
 
 
-def reload_batch(cards, amount):
+def reload_batch(credentials, cards, amount):
     result = {
         "timestamp_start": datetime.now(timezone.utc),
         "app_engine": is_app_engine_environment(),
@@ -108,10 +111,7 @@ def reload_batch(cards, amount):
                 f"{session.remote_ip()}:4444",
                 headless=result["compute_instance_webdriver"],
             ) as reloader:
-                credentials = (
-                    db.collection("credentials").document("amazon").get().to_dict()
-                )
-                reloader.authenticate(credentials["username"], credentials["password"])
+                reloader.authenticate(*credentials)
                 for card in cards:
                     try:
                         reloader.reload(card, amount)
@@ -127,29 +127,35 @@ def reload_batch(cards, amount):
     return result
 
 
+def validate_and_reload_batch(key, cards, amount):
+    if (
+        amount <= 0
+        or len(cards) == 0
+        or False in [match(r"^\d{16}$", card) for card in cards]
+    ):
+        raise BadRequest()
+    try:
+        return reload_batch(read_credentials(key), cards, amount)
+    except SecurityException:
+        # Block for 5 seconds to mitigate brute-force key attacks.
+        sleep(5)
+        raise BadRequest()
+
+
 @app.route("/reload")
 def reload():
-    try:
-        amount = float(request.args.get("amount"))
-    except (TypeError, ValueError):
-        raise BadRequest()
-    cards = request.args.get("cards")
-    if amount <= 0 or cards is None or not match(r"^\d{16}(,\d{16})*$", cards):
-        raise BadRequest()
-    return jsonify({**reload_batch(cards.split(","), amount), "cards": None})
+    key = request.args.get("key", "")
+    cards = request.args.get("cards", "").split(",")
+    amount = request.args.get("amount", 0, float)
+    return jsonify({**validate_and_reload_batch(key, cards, amount), "cards": None})
 
 
 @app.route("/reloadAll")
 def reload_all():
-    try:
-        amount = float(request.args.get("amount"))
-    except (TypeError, ValueError):
-        raise BadRequest()
-    if amount <= 0:
-        raise BadRequest()
+    key = request.args.get("key", "")
     cards = [card.to_dict()["number"] for card in db.collection("cards").stream()]
-    # @TODO(darrennchan8): Consider obfuscating (use alias) the resulting array of card numbers.
-    return jsonify({**reload_batch(cards, amount), "cards": None})
+    amount = request.args.get("amount", 0, float)
+    return jsonify({**validate_and_reload_batch(key, cards, amount), "cards": None})
 
 
 if __name__ == "__main__":
