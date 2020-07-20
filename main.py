@@ -97,7 +97,8 @@ def reload_batch(credentials, cards, amount):
     result = {
         "timestamp_start": datetime.now(timezone.utc),
         "app_engine": is_app_engine_environment(),
-        "compute_instance_webdriver": "--compute-instance-webdriver" in argv,
+        "compute_instance_webdriver": is_app_engine_environment()
+        or "--compute-instance-webdriver" in argv,
         "cards": cards,
         "amount": amount,
         "success": [],
