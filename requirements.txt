@@ -6,6 +6,9 @@ certifi==2020.6.20
 cfgv==3.1.0
 chardet==3.0.4
 click==7.1.2
+colorama==0.4.3
+configparser==5.0.0
+crayons==0.3.1
 distlib==0.3.1
 filelock==3.0.12
 Flask==1.1.2
@@ -47,4 +50,5 @@ typing-extensions==3.7.4.2
 uritemplate==3.0.1
 urllib3==1.25.9
 virtualenv==20.0.25
+webdriver-manager==3.2.1
 Werkzeug==1.0.1

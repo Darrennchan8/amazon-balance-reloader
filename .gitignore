@@ -131,9 +131,5 @@ dmypy.json
 # App Engine service account credentials
 service-account.json
 
-# Development selenium + chromedriver binaries
-chromedriver*
-selenium-server-standalone.jar
-
 # IDE
 .idea/

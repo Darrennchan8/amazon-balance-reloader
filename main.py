@@ -2,9 +2,9 @@ import traceback
 from datetime import datetime
 from datetime import timedelta
 from datetime import timezone
-from functools import lru_cache
-from re import match
-from secrets import read_credentials
+from secrets import get_card_names
+from secrets import get_cards
+from secrets import get_credentials
 from secrets import SecurityException
 from sys import argv
 from time import sleep
@@ -16,8 +16,9 @@ from flask import request
 from google.cloud import firestore
 from werkzeug.exceptions import BadRequest
 
-from amazon_balance_reloader import AmazonBalanceReloader
 from amazon_balance_reloader import AmazonBalanceReloaderException
+from amazon_balance_reloader import LocalAmazonBalanceReloader
+from amazon_balance_reloader import RemoteAmazonBalanceReloader
 from compute_session import ComputeSession
 from compute_session import ComputeSessionException
 from compute_session import is_app_engine_environment
@@ -26,13 +27,6 @@ from compute_session import project_id
 
 app = Flask(__name__)
 db = firestore.Client()
-
-
-@lru_cache
-def masked_card(card_num):
-    cards = [card.to_dict() for card in db.collection("cards").stream()]
-    cards = {card["number"]: card["name"] for card in cards}
-    return cards.get(card_num, f"**** **** **** {card_num[-4:]}")
 
 
 def gae_dashboard_url():
@@ -77,10 +71,10 @@ def index():
             )
             if transaction["app_engine"]
             else None,
-            "cards": [masked_card(card) for card in transaction["cards"]],
+            "cards": transaction["cards"],
             "amount": "${:,.2f}".format(transaction["amount"]),
             "success": transaction["success"],
-            "message": f'Some cards failed to reload: { ", ".join(masked_card(cs[0]) for cs in zip(transaction["cards"], transaction["success"]) if not cs[1]) }'
+            "message": f'Some cards failed to reload: { ", ".join(cs[0] for cs in zip(transaction["cards"], transaction["success"]) if not cs[1]) }'
             if True in transaction["success"] and False in transaction["success"]
             else f'Successfully reloaded {len(transaction["cards"])} cards!'
             if True in transaction["success"]
@@ -88,9 +82,7 @@ def index():
         }
         for transaction in transactions
     ]
-    cards = [card.to_dict() for card in db.collection("cards").stream()]
-    cards = {card["name"]: f'**** **** **** {card["number"][-4:]}' for card in cards}
-    return render_template("status.html", transactions=transactions, cards=cards)
+    return render_template("status.html", transactions=transactions)
 
 
 def reload_batch(credentials, cards, amount):
@@ -99,21 +91,22 @@ def reload_batch(credentials, cards, amount):
         "app_engine": is_app_engine_environment(),
         "compute_instance_webdriver": is_app_engine_environment()
         or "--compute-instance-webdriver" in argv,
-        "cards": cards,
+        "cards": list(cards.keys()),
         "amount": amount,
         "success": [],
         "timestamp_end": None,
     }
     try:
+        if not result["compute_instance_webdriver"]:
+            pass
         with ComputeSession("standalone-chrome") if result[
             "compute_instance_webdriver"
         ] else MockComputeSession("127.0.0.1") as session:
-            with AmazonBalanceReloader(
-                f"{session.remote_ip()}:4444",
-                headless=result["compute_instance_webdriver"],
-            ) as reloader:
-                reloader.authenticate(*credentials)
-                for card in cards:
+            with RemoteAmazonBalanceReloader(f"{session.remote_ip()}:4444") if result[
+                "compute_instance_webdriver"
+            ] else LocalAmazonBalanceReloader() as reloader:
+                reloader.authenticate(credentials["username"], credentials["password"])
+                for card in cards.values():
                     try:
                         reloader.reload(card, amount)
                         result["success"].append(True)
@@ -132,11 +125,19 @@ def validate_and_reload_batch(key, cards, amount):
     if (
         amount <= 0
         or len(cards) == 0
-        or False in [match(r"^\d{16}$", card) for card in cards]
+        or False in [card in get_card_names() for card in cards]
     ):
         raise BadRequest()
     try:
-        return reload_batch(read_credentials(key), cards, amount)
+        return reload_batch(
+            get_credentials(key),
+            {
+                name: number
+                for (name, number) in get_cards(key).items()
+                if name in cards
+            },
+            amount,
+        )
     except SecurityException:
         # Block for 5 seconds to mitigate brute-force key attacks.
         sleep(5)
@@ -154,9 +155,10 @@ def reload():
 @app.route("/reloadAll")
 def reload_all():
     key = request.args.get("key", "")
-    cards = [card.to_dict()["number"] for card in db.collection("cards").stream()]
     amount = request.args.get("amount", 0, float)
-    return jsonify({**validate_and_reload_batch(key, cards, amount), "cards": None})
+    return jsonify(
+        {**validate_and_reload_batch(key, get_card_names(), amount), "cards": None}
+    )
 
 
 if __name__ == "__main__":

@@ -36,7 +36,7 @@ pip install -r requirements.txt
 pre-commit install
 ```
 
-### Cloud Firestore & Credentials
+### Cloud Firestore
 Before running, you'll need to follow
 [these steps](https://cloud.google.com/appengine/docs/standard/python3/quickstart#before-you-begin)
 to create a new GCP project, create a
@@ -49,24 +49,13 @@ GOOGLE_APPLICATION_CREDENTIALS. Example:
 export GOOGLE_APPLICATION_CREDENTIALS="/path/to/amazon-balance-reloader/service-account.json"
 ```
 
-To initialize credentials in Firestore, you can use `secrets.py`. Be prepared to enter your Amazon login credentials and
-save the secret key for [later use](#usage).
+To initialize the data in Firestore, you can use `secrets.py`. Be prepared to enter your Amazon login credentials, credit card
+information, and save the secret key for [later use](#usage).
 ```bash
-python3 secrets.py --reset-secrets
-```
-
-### Webdriver Server
-This application also needs to connect to a selenium chromedriver instance. In this case, we can use
-[selenium/standalone-chrome](https://hub.docker.com/r/selenium/standalone-chrome/):
-```bash
-docker run -d -p 4444:4444 -v /dev/shm:/dev/shm selenium/standalone-chrome
-```
-
-When debugging it is also helpful to be able to see what's being automated. In this case, you'll need to download
-[selenium](https://www.selenium.dev/downloads/) and [chromedriver](https://chromedriver.chromium.org/downloads) and run
-the following:
-```bash
-java "-Dwebdriver.chrome.driver=./chromedriver" -jar ./selenium-server-standalone.jar
+# Initialize Amazon credentials.
+python3 secrets.py --reset
+# Add cards.
+python3 secrets.py --add-cards
 ```
 
 ## Running Locally
@@ -81,13 +70,15 @@ Visit `http://127.0.0.1:8080/` to view an HTML dashboard containing a list of re
 This app is controlled via a REST api. Here are the routes and their descriptions:
 
 Reload the Amazon gift card balance by using a specified card to charge a specified amount.\
-`GET` `/reload?cards=[CARD_NUMBERS]&amount=[AMOUNT]`
- - CARD_NUMBERS: A series of credit card numbers separated by a comma.
- - AMOUNT: A positive floating-point number. Note that Amazon imposes a minimum reload amount of `$0.50`.
+`GET` `/reload?key=[SECRET_KEY]&cards=[CARD_NAMES]&amount=[AMOUNT]`
+ - SECRET_KEY: The private key emitted by `secrets.py`.
+ - CARD_NAMES: A series of added card names separated by a comma.
+ - AMOUNT: A positive floating-point number. Note that Amazon imposes a minimum reload amount of `0.50`.
 
 Reload the Amazon gift card balance by charging all cards associated with the Amazon account.\
-`GET` `/reloadAll?amount=[AMOUNT]`
- - AMOUNT: A positive floating-point number. Note that Amazon imposes a minimum reload amount of `$0.50`.
+`GET` `/reloadAll?key=[SECRET_KEY]&amount=[AMOUNT]`
+ - SECRET_KEY: The private key emitted by `secrets.py`.
+ - AMOUNT: A positive floating-point number. Note that Amazon imposes a minimum reload amount of `0.50`.
 
 ## Running on the Cloud
 Before deploying on App Engine, we need to configure a remotely accessible selenium backend.
@@ -133,6 +124,8 @@ balance, you may find the below sections useful for automation needs, developmen
 Consider [Google Cloud Scheduler](https://cloud.google.com/scheduler) or
 [cron.yaml](https://cloud.google.com/appengine/docs/standard/python3/scheduling-jobs-with-cron-yaml) to automatically
 ping `/reloadAll` periodically.
+
+Note that you will need to change the request type on Google Cloud Scheduler (default POST) to GET.
 
 ### Automated Builds
 Follow [these steps](https://cloud.google.com/source-repositories/docs/integrating-with-cloud-build) to integrate with

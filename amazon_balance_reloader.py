@@ -5,6 +5,7 @@ from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+from webdriver_manager.chrome import ChromeDriverManager
 
 
 class AmazonBalanceReloaderException(Exception):
@@ -32,17 +33,8 @@ def throwable(message):
 
 class AmazonBalanceReloader:
     @throwable("Unable to connect to chromedriver!")
-    def __init__(self, host, headless=True):
-        chrome_options = webdriver.ChromeOptions()
-        # @TODO(darrennchan8): Make sure that Compute Engine maps /dev/shm in docker container.
-        #       Otherwise, we'll need to uncomment the following line.
-        # chrome_options.add_argument('--disable-dev-shm-usage')
-        if headless:
-            chrome_options.add_argument("--headless")
-        self.driver = webdriver.Remote(
-            desired_capabilities=chrome_options.to_capabilities(),
-            command_executor=f"http://{host}/wd/hub",
-        )
+    def __init__(self, driver):
+        self.driver = driver
         self.driver.implicitly_wait(5)
 
     def __enter__(self):
@@ -110,3 +102,22 @@ class AmazonBalanceReloader:
             self.driver.quit()
             raise inst
         self.driver.quit()
+
+
+class LocalAmazonBalanceReloader(AmazonBalanceReloader):
+    def __init__(self):
+        super().__init__(webdriver.Chrome(ChromeDriverManager().install()))
+
+
+class RemoteAmazonBalanceReloader(AmazonBalanceReloader):
+    def __init__(self, host):
+        chrome_options = webdriver.ChromeOptions()
+        # @TODO(darrennchan8): Make sure that Compute Engine maps /dev/shm in docker container.
+        #       Otherwise, we'll need to uncomment the following line.
+        # chrome_options.add_argument('--disable-dev-shm-usage')
+        chrome_options.add_argument("--headless")
+        driver = webdriver.Remote(
+            desired_capabilities=chrome_options.to_capabilities(),
+            command_executor=f"http://{host}/wd/hub",
+        )
+        super().__init__(driver)
