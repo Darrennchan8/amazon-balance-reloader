@@ -48,7 +48,7 @@ toml==0.10.1
 typed-ast==1.4.1
 typing-extensions==3.7.4.2
 uritemplate==3.0.1
-urllib3==1.25.9
+urllib3==1.26.5
 virtualenv==20.0.25
 webdriver-manager==3.2.1
 Werkzeug==1.0.1
