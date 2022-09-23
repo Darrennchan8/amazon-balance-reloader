@@ -33,7 +33,7 @@ nodeenv==1.6.0
 pathspec==0.9.0
 pip-autoremove==0.10.0
 pre-commit==2.16.0
-protobuf==3.19.1
+protobuf==3.19.5
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
 pycryptodome==3.12.0
